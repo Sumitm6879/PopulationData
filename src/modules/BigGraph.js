@@ -30,7 +30,6 @@ const createChart = (ctx, data) => {
     const xs = [];
     const ys = [];
     const backgroundColors = [];
-    const borderColors = [];
 
     const filteredData = data.map(item => ({ country: item.country, pop: item['2023 population'] }));
 
@@ -39,7 +38,6 @@ const createChart = (ctx, data) => {
         ys.push(parseFloat(item.pop) / 1000000000);
         const color = getRandomColor();
         backgroundColors.push(color);
-        borderColors.push(color);
     });
 
     return new Chart(ctx, {
@@ -48,8 +46,8 @@ const createChart = (ctx, data) => {
             labels: xs,
             datasets: [{
                 label: 'Population of Countries 2023',
-                backgroundColor: backgroundColors,
-                borderColor: borderColors,
+                backgroundColor: backgroundColors[0],
+                borderColor: 'black',
                 data: ys,
                 borderWidth: 2
             }]
