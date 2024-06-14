@@ -22,3 +22,9 @@ body{
     height: 300px;
     width: 550px;
 }
+
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
