@@ -17,30 +17,23 @@ const getData = async () => {
     }
 };
 
-const getRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-};
-
-const createSmallChart1 = (ctx, countryData) => {
+const createSmallChart1 = (ctx, countryData, gcolor) => {
     const xs = ['1970', '1980', '1990', '2000', '2010', '2020', '2023'];
-    const ys = xs.map(year => parseFloat(countryData[`${year} population`]) / 1000000);
+    const ys = xs.map(year => (parseFloat(countryData[`${year} population`])));
 
-    const backgroundColors = getRandomColor();
     return new Chart(ctx, {
         type: 'line',
         data: {
             labels: xs,
             datasets: [{
                 label: `Population of ${countryData.country} Over the Years 1970-2023`,
-                backgroundColor: backgroundColors,
-                borderColor: backgroundColors,
+                backgroundColor: gcolor,
+                borderColor: gcolor,
+                pointBackgroundColor: "black",
                 data: ys,
-                borderWidth: 2
+                borderWidth: 2,
+                fill: false,
+                tension:.4
             }]
         },
         options: {
@@ -51,7 +44,15 @@ const createSmallChart1 = (ctx, countryData) => {
                     ticks: {
                         beginAtZero: true,
                         callback: function(value) {
-                            return value + "M";
+                            if (value >= 1e9) {
+                                return (value / 1e9).toFixed(1) + 'B';
+                            } else if (value >= 1e6) {
+                                return (value / 1e6).toFixed(1) + 'M';
+                            } else if (value >= 1e3) {
+                                return (value / 1e3).toFixed(1) + 'K';
+                            } else {
+                                return value;
+                            }
                         }
                     }
                 }
@@ -60,17 +61,17 @@ const createSmallChart1 = (ctx, countryData) => {
     });
 };
 
-const createSmallChart2 = (ctx, countryData) => {
+const createSmallChart2 = (ctx, countryData,gcolor) => {
     const worldPercentage = parseFloat(countryData['world percentage'].replace("%", ''));
 
     return new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: [countryData.country, 'Rest of the World'],
+            labels: [`${countryData.country} ${worldPercentage}%`, `Rest of the World ${100-worldPercentage}%`],
             datasets: [{
                 data: [worldPercentage, 100 - worldPercentage],
-                backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(255, 205, 86, 0.2)'],
-                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 205, 86, 1)'],
+                backgroundColor: [gcolor, 'rgba(255, 205, 86, 0.2)'],
+                borderColor: [gcolor, 'rgba(255, 205, 86, 1)'],
                 borderWidth: 1
             }]
         },
@@ -81,13 +82,14 @@ const createSmallChart2 = (ctx, countryData) => {
     });
 };
 
-function SmallGraph() {
+function SmallGraph(props) {
     const [countries, setCountries] = useState([]);
     const [selectedCountry, setSelectedCountry] = useState('India');
     const chart1Ref = useRef(null);
     const chart2Ref = useRef(null);
     const chart1Instance = useRef(null);
     const chart2Instance = useRef(null);
+    const gcolor = props.gcolor;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -111,8 +113,8 @@ function SmallGraph() {
             }
 
             if (countryData) {
-                chart1Instance.current = createSmallChart1(chart1Ref.current.getContext('2d'), countryData);
-                chart2Instance.current = createSmallChart2(chart2Ref.current.getContext('2d'), countryData);
+                chart1Instance.current = createSmallChart1(chart1Ref.current.getContext('2d'), countryData, gcolor);
+                chart2Instance.current = createSmallChart2(chart2Ref.current.getContext('2d'), countryData, gcolor);
             }
         };
 
@@ -124,7 +126,7 @@ function SmallGraph() {
     };
 
     return (
-        <div>
+        <div className='mb-5 mt-5'>
             <h1 className='center d-flex justify-content-md-center mt-5'>Graphs of Individual Countries</h1>
             <div className="container d-flex justify-content-md-center mt-5">
                 <select onChange={handleCountryChange} value={selectedCountry}>
@@ -133,7 +135,7 @@ function SmallGraph() {
                     ))}
                 </select>
             </div>
-            <div className="container d-flex justify-content-md-evenly mt-5">
+            <div className="container d-flex justify-content-md-evenly mt-3">
                 <div className="container boxHeight">
                     <canvas className='smallchart1' ref={chart1Ref} id="smallchart1">small chart1</canvas>
                 </div>

@@ -1,6 +1,5 @@
-// src/PopulationChart.js
-import React, { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
+// src/ContinentChart.js
+import React, { useEffect, useState, useRef } from 'react';
 import Chart from 'chart.js/auto';
 
 const apiurl = "http://127.0.0.1:5000/data/all";
@@ -19,61 +18,105 @@ const getData = async () => {
     }
 };
 
-const Continent = () => {
-    const [chartData, setChartData] = useState({});
+
+
+const createContinentChart = (ctx, data, year, gcolor) => {
+    const continentPopulations = {};
+    
+    data.forEach(item => {
+        const continent = item.continent;
+        const population = item[`${year} population`];
+        if (continentPopulations[continent]) {
+            continentPopulations[continent] += population;
+        } else {
+            continentPopulations[continent] = population;
+        }
+    });
+
+    const xs = Object.keys(continentPopulations);
+    const ys = Object.values(continentPopulations).map(pop => pop); // Convert to millions for readability
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: xs,
+            datasets: [{
+                label: `Population of Continents in ${year}`,
+                backgroundColor: gcolor,
+                borderColor: 'black',
+                data: ys,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            if (value >= 1e9) {
+                                return (value / 1e9).toFixed(1) + 'B';
+                            } else if (value >= 1e6) {
+                                return (value / 1e6).toFixed(1) + 'M';
+                            } else if (value >= 1e3) {
+                                return (value / 1e3).toFixed(1) + 'K';
+                            } else {
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+};
+
+function Continent(props) {
+    const [data, setData] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('2023');
+    const chartRef = useRef(null);
+    const chartInstance = useRef(null);
+    const gcolor = props.gcolor
 
     useEffect(() => {
-        const fetchAndProcessData = async () => {
-            const data = await getData();
-            const continentPopulation = {};
-
-            data.forEach(country => {
-                const { continent, '2023 population': population } = country;
-                if (continentPopulation[continent]) {
-                    continentPopulation[continent] += population;
-                } else {
-                    continentPopulation[continent] = population;
-                }
-            });
-
-            const labels = Object.keys(continentPopulation);
-            const populations = Object.values(continentPopulation);
-
-            setChartData({
-                labels,
-                datasets: [{
-                    label: 'Population in 2023',
-                    data: populations,
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(255, 159, 64, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            });
+        const fetchData = async () => {
+            const fetchedData = await getData();
+            setData(fetchedData);
         };
-
-        fetchAndProcessData();
+        fetchData();
     }, []);
 
+    useEffect(() => {
+        if (data.length > 0) {
+            if (chartInstance.current) {
+                chartInstance.current.destroy();
+            }
+            const ctx = chartRef.current.getContext('2d');
+            chartInstance.current = createContinentChart(ctx, data, selectedYear, gcolor);
+        }
+    }, [data, selectedYear]);
+
+    const handleYearChange = (e) => {
+        setSelectedYear(e.target.value);
+    };
+
     return (
-        <div>
-            <h2>Population by Continent in 2023</h2>
-            <Bar data={chartData} />
+        <div className='center mt-5 mb-5'>
+            <h1>Population by Continent</h1>
+            <div className="container d-flex justify-content-md-center mt-3">
+                <select onChange={handleYearChange} value={selectedYear}>
+                    {['1970', '1980', '1990', '2000', '2010', '2020', '2023'].map((year, index) => (
+                        <option key={index} value={year}>{year}</option>
+                    ))}
+                </select>
+            </div>
+            <div className="container biggraph mt-3">
+                <canvas id="myChart" ref={chartRef} height="500px"></canvas>
+            </div>
         </div>
     );
-};
+}
 
 export default Continent;
